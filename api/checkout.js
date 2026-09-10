@@ -117,7 +117,7 @@ export default async function handler(req, res) {
         await db.collection('pedidos').doc(externalReference).update({
           estado: 'pagado'
         });
-        return res.status(200).json({ init_point: 'rapidiya://pago/exito' });
+        return res.status(200).json({ initPoint: 'rapidiya://pago/exito' });
       } else {
         throw new Error('No hay productos válidos para cobrar');
       }
