@@ -19,33 +19,53 @@ class CartScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(cartProvider);
     final cartNotifier = ref.read(cartProvider.notifier);
-    final subtotal = items.fold<int>(0, (acc, item) => acc + item.subtotal);
-    const envio = 0;
-    final total = subtotal + envio;
+    final totalPesos = items.where((i) => !i.requiereTokens).fold(0, (sum, i) => sum + i.subtotal);
+    final totalTokens = items.where((i) => i.requiereTokens).fold(0, (sum, i) => sum + i.subtotal);
+
+    // TODO: if you have shipping costs, add them to totalPesos
+    final subtotalPesos = totalPesos;
 
     return Scaffold(
       body: Column(
         children: [
-          // Header
+          // Banner superior
           Container(
+            padding: const EdgeInsets.only(top: 50, bottom: 20, left: 20, right: 20),
             decoration: BoxDecoration(
               gradient: AppColors.brandGradient,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
             ),
-            padding: const EdgeInsets.only(top: 50, bottom: 20, left: 20, right: 20),
-            child: Row(
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => context.pop(),
+                      icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                    ),
+                    const Text(
+                      'Tu carrito',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  onPressed: () => context.pop(),
-                  icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-                ),
-                const Text(
-                  'Tu carrito',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Text(
+                  '${items.length} ${items.length == 1 ? 'producto' : 'productos'}',
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 if (items.isNotEmpty)
                   TextButton(
@@ -73,6 +93,8 @@ class CartScreen extends ConsumerWidget {
                 else
                   const SizedBox(width: 44),
               ],
+            ),
+            ],
             ),
           ),
 
@@ -110,8 +132,13 @@ class CartScreen extends ConsumerWidget {
               ),
               child: Column(
                 children: [
-                  _buildSummaryRow('Subtotal (descuentos aplicados)', r'$' '$subtotal'),
-                  _buildSummaryRow('Envío', r'$0'),
+                  if (totalPesos > 0) ...[
+                    _buildSummaryRow('Subtotal (Pesos)', r'$' '$subtotalPesos'),
+                    _buildSummaryRow('Envío', r'$0'),
+                  ],
+                  if (totalTokens > 0)
+                    _buildSummaryRow('Subtotal (Tokens)', '🪙 $totalTokens'),
+                  
                   const Divider(height: 20),
                   SizedBox(height: 10),
                   Align(
@@ -153,11 +180,10 @@ class CartScreen extends ConsumerWidget {
                       child: const Text('¿Tenés problemas con el pago?'),
                     ),
                   ),
-                  _buildSummaryRow(
-                    'Total',
-                    r'$' '$total',
-                    isTotal: true,
-                  ),
+                  if (totalPesos > 0)
+                    _buildSummaryRow('Total a pagar', r'$' '$totalPesos', isTotal: true),
+                  if (totalTokens > 0)
+                    _buildSummaryRow('Total en Tokens', '🪙 $totalTokens', isTotal: true),
                   const SizedBox(height: 15),
                   SizedBox(
                     width: double.infinity,
@@ -202,8 +228,8 @@ class CartScreen extends ConsumerWidget {
                               mapsUrl: userData['maps_url'] ?? '',
                               descripcionCasa: '',
                               items: pedidoItems,
-                              subtotal: subtotal.toDouble(),
-                              total: total.toDouble(),
+                              subtotal: subtotalPesos.toDouble(),
+                              total: totalPesos.toDouble(),
                               direccionEnvio: userData['direccion'] ?? '',
                               estado: EstadoPedido.pendiente,
                               fechaCreacion: DateTime.now(),

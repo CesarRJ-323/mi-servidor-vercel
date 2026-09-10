@@ -49,6 +49,7 @@ export default async function handler(req, res) {
 
   try {
     let realTotal = 0;
+    let totalTokens = 0;
     const mpItems = [];
     
     for (const item of items) {
@@ -60,20 +61,59 @@ export default async function handler(req, res) {
       }
       
       const productData = productDoc.data();
-      const price = productData.precio_base || 0;
-      realTotal += price * item.cantidad;
-      
-      mpItems.push({
-        id: item.id,
-        title: productData.nombre || 'Producto',
-        quantity: item.cantidad,
-        unit_price: Number(price),
-        currency_id: 'ARS',
+      const requiereTokens = productData.requiere_tokens === true;
+
+      if (requiereTokens) {
+        const precioTokens = productData.precio_tokens || 0;
+        totalTokens += precioTokens * item.cantidad;
+      } else {
+        const price = productData.precio_base || 0;
+        realTotal += price * item.cantidad;
+        
+        mpItems.push({
+          id: item.id,
+          title: productData.nombre || 'Producto',
+          quantity: item.cantidad,
+          unit_price: Number(price),
+          currency_id: 'ARS',
+        });
+      }
+    }
+
+    // Verificar saldo de tokens si hay productos que lo requieran
+    if (totalTokens > 0) {
+      const userDoc = await db.collection('usuarios').doc(userId).get();
+      if (!userDoc.exists) {
+        throw new Error('Usuario no encontrado');
+      }
+      const userData = userDoc.data();
+      const userTokens = userData.tokens_balance || 0;
+
+      if (userTokens < totalTokens) {
+        return res.status(400).json({ error: `Tokens insuficientes. Necesitas ${totalTokens} 🪙 pero tienes ${userTokens} 🪙` });
+      }
+
+      // Dejar anotado cuántos tokens hay que descontarle cuando pague en Mercado Pago
+      // Si el pedido es 100% tokens, lo descontaremos ahora mismo.
+      await db.collection('pedidos').doc(externalReference).update({
+        tokensAbonar: totalTokens
       });
     }
 
     if (mpItems.length === 0) {
-      throw new Error('No hay productos válidos para cobrar');
+      // Es un pedido 100% con tokens. Descontar tokens ahora y marcar como pagado.
+      if (totalTokens > 0) {
+        const admin = require('firebase-admin');
+        await db.collection('usuarios').doc(userId).update({
+          tokens_balance: admin.firestore.FieldValue.increment(-totalTokens)
+        });
+        await db.collection('pedidos').doc(externalReference).update({
+          estado: 'pagado'
+        });
+        return res.status(200).json({ init_point: 'rapidiya://pago/exito' });
+      } else {
+        throw new Error('No hay productos válidos para cobrar');
+      }
     }
 
     // Configurar Mercado Pago

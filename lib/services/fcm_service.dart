@@ -50,7 +50,7 @@ class FcmService {
     );
 
     // 3. Configurar flutter_local_notifications para mostrar notificaciones
-    const initAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const initAndroid = AndroidInitializationSettings('@mipmap/launcher_icon');
     await _localNotif.initialize(
       const InitializationSettings(android: initAndroid),
     );

@@ -185,6 +185,7 @@ class ProductoBusquedaCard extends ConsumerWidget {
                         precio: producto.precioFinal.toInt(),
                         cantidad: 1,
                         icono: _emoji(producto.nombre),
+                        requiereTokens: producto.requiereTokens,
                       ),
                     );
                 ScaffoldMessenger.of(context).showSnackBar(

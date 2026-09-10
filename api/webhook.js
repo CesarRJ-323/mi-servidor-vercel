@@ -80,12 +80,17 @@ export default async function handler(req, res) {
           totalItems = pedidoData.items.reduce((sum, item) => sum + (item.cantidad || 1), 0);
         }
         
-        if (totalItems > 0 && pedidoData.usuario_id) {
+        let tokensChange = totalItems;
+        if (pedidoData.tokensAbonar) {
+          tokensChange -= pedidoData.tokensAbonar;
+        }
+        
+        if (tokensChange !== 0 && pedidoData.usuario_id) {
           const userRef = db.collection('usuarios').doc(pedidoData.usuario_id);
           batch.update(userRef, {
-            'tokens_balance': admin.firestore.FieldValue.increment(totalItems)
+            'tokens_balance': admin.firestore.FieldValue.increment(tokensChange)
           });
-          console.log(`Otorgados ${totalItems} tokens al usuario ${pedidoData.usuario_id}`);
+          console.log(`Otorgados/Descontados ${tokensChange} tokens al usuario ${pedidoData.usuario_id}`);
         }
       }
 

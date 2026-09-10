@@ -21,11 +21,13 @@ class _AdminProductoScreenState extends ConsumerState<AdminProductoScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nombreCtrl = TextEditingController();
   final _precioCtrl = TextEditingController();
+  final _precioTokensCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _urlCtrl = TextEditingController();
   final _categorias = ['cereales', 'bebidas', 'frutas', 'jugos', 'postres'];
   String _categoria = 'cereales';
   bool _descuentoActivo = false;
+  bool _requiereTokens = false;
   final _ticketsRewardCtrl = TextEditingController();
   final _porcCtrl = TextEditingController();
   bool _disponible = true;
@@ -38,12 +40,15 @@ class _AdminProductoScreenState extends ConsumerState<AdminProductoScreen> {
     if (p != null) {
       _nombreCtrl.text = p.nombre;
       _precioCtrl.text = p.precioBase.toInt().toString();
+      _precioTokensCtrl.text = p.precioTokens.toString();
       _descCtrl.text = p.descripcion;
       _urlCtrl.text = p.urlImagen;
       _categoria = p.categoria.isNotEmpty ? p.categoria : 'cereales';
       _descuentoActivo = p.descuentoActivo;
+      _requiereTokens = p.requiereTokens;
       _porcCtrl.text = p.porcentajeDescuento?.toInt().toString() ?? '';
-    _ticketsRewardCtrl.text = p.ticketsReward.toString();      _disponible = p.disponible;
+      _ticketsRewardCtrl.text = p.ticketsReward.toString();
+      _disponible = p.disponible;
     }
   }
 
@@ -51,6 +56,7 @@ class _AdminProductoScreenState extends ConsumerState<AdminProductoScreen> {
   void dispose() {
     _nombreCtrl.dispose();
     _precioCtrl.dispose();
+    _precioTokensCtrl.dispose();
     _descCtrl.dispose();
     _urlCtrl.dispose();
     _porcCtrl.dispose();
@@ -74,7 +80,10 @@ class _AdminProductoScreenState extends ConsumerState<AdminProductoScreen> {
             ? (double.tryParse(_porcCtrl.text) ?? 0)
             : null,
         disponible: _disponible,
-        ticketsReward: int.tryParse(_ticketsRewardCtrl.text) ?? 0,        stock: widget.producto?.stock ?? 0,
+        ticketsReward: int.tryParse(_ticketsRewardCtrl.text) ?? 0,
+        stock: widget.producto?.stock ?? 0,
+        requiereTokens: _requiereTokens,
+        precioTokens: int.tryParse(_precioTokensCtrl.text) ?? 0,
       );
 
       if (widget.producto == null) {

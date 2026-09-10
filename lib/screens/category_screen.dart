@@ -149,6 +149,7 @@ class CategoryScreen extends ConsumerWidget {
                             ).toInt(),
                             cantidad: 1,
                             icono: emojiParaProducto(producto.nombre),
+                            requiereTokens: producto.requiereTokens,
                           ),
                         );
                         ScaffoldMessenger.of(context).showSnackBar(
