@@ -1,0 +1,9 @@
+{
+  "mp": {
+    "access_token": "APP_USR-6200570129811424-090718-3eae0ffa5756529ce513fe17560a6a82-3670768195",
+    "public_key": "APP_USR-fc7fa5eb-36fd-4a07-9106-8911c8469033",
+    "webhook_secret": "rapidiya_mp_webhook_secret_2026",
+    "internal_api_key": "test-key-rapidiya-2026",
+    "environment": "production"
+  }
+}

@@ -1,0 +1,90 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== Helper: ¿el caller es admin? =====
+    function esAdmin() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+    }
+
+    // ===== Productos: lectura pública EN DEBUG; Auth + App Check SOLO en producción =====
+    // En modo debug App Check usa el provider de debug (token local) → funciona con request.app != null.
+    // En producción, el SDK usa provider de APK cert + Play Integrity → request.app != null.
+    match /productos/{id} {
+      allow read: if request.auth != null && request.app != null;
+      allow create, update: if request.auth != null && request.app != null;
+      allow delete: if esAdmin();
+    }
+
+    // ===== Promos: lectura pública, escritura SOLO admin =====
+    match /promos/{id} {
+      allow read: if true;
+      allow write: if esAdmin();
+    }
+
+    // ===== Sorteos: lectura pública; participación solo agrega el uid propio =====
+    match /sorteos/{id} {
+      allow read: if true;
+      allow create, delete: if esAdmin();
+      allow update: if esAdmin()
+        || (request.auth != null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantes', 'nombres_participantes'])
+            && request.resource.data.participantes is list
+            && request.resource.data.participantes.size() == resource.data.participantes.size() + 1
+            && request.resource.data.participantes[resource.data.participantes.size() - 1] == request.auth.uid);
+    }
+
+    // ===== Descuentos: escritura SOLO admin + validación =====
+    match /descuentos/{categoria} {
+      allow read: if true;
+      allow write: if esAdmin()
+        && request.resource.data.porcentaje is number
+        && request.resource.data.porcentaje >= 0
+        && request.resource.data.porcentaje <= 100;
+    }
+
+    // ===== Usuarios =====
+    // - El ROL es inmutable vía update del dueño (solo admin puede cambiarlo).
+    // - El dueño solo puede editar campos de perfil (lista blanca).
+    // - tokens_balance NUNCA lo toca el cliente (evita auto-donarse tokens).
+    match /usuarios/{uid} {
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.rol == 'cliente';
+      allow read: if request.auth != null
+        && (request.auth.uid == uid || esAdmin());
+      allow update: if (request.auth != null && request.auth.uid == uid
+          && request.resource.data.rol == resource.data.rol
+          && request.resource.data.tokens_balance == resource.data.tokens_balance
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+              // CORREGIDO: 'url_foto' en snake_case (antes era 'urlFoto' → mismatch con SDK)
+              ['nombre', 'telefono', 'whatsapp', 'direccion', 'maps_url', 'descripcion_casa', 'url_foto']))
+        || esAdmin();
+      allow delete: if esAdmin();
+    }
+
+    // ===== Pedidos =====
+    // Admin: lectura y escritura global.
+    // Cliente: crea el suyo (pendiente, total numérico >= 0), lo lee, y solo
+    // puede editarlo mientras esté 'pendiente' — jamás toca campos de pago.
+    match /pedidos/{id} {
+      allow read: if esAdmin()
+        || (request.auth != null && resource.data.usuario_id == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.usuario_id == request.auth.uid
+        && request.resource.data.total is number
+        && request.resource.data.total >= 0
+        && request.resource.data.estado == 'pendiente';
+      allow update: if esAdmin()
+        || (request.auth != null
+            && resource.data.usuario_id == request.auth.uid
+            && resource.data.estado == 'pendiente'
+            && request.resource.data.usuario_id == resource.data.usuario_id
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(
+                ['estado_pago', 'pago_verificado', 'payment_id']));
+      // Solo el admin borra pedidos (los cancelados se eliminan).
+      allow delete: if esAdmin();
+    }
+  }
+}

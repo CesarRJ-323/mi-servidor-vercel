@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "delivery_app_v2 (emulador)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "args": ["-d", "emulator-5554"]
+    },
+    {
+      "name": "delivery_app_v2 (elegir dispositivo)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "delivery_app_v2 (perfil/release)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "args": ["--profile"]
+    }
+  ]
+}

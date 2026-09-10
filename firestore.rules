@@ -1,0 +1,203 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== Helper: ¿el caller es admin? =====
+    function esAdmin() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+    }
+
+    // ===== Helper: App Check validation =====
+    // En producción, App Check (Play Integrity) genera request.app != null.
+    // En debug, el provider.debug registra el token en Firebase Console.
+    // Si App Check no está disponible (e.g. emulador sin token), las rules
+    // eximen al menos autenticación para reads y App Check para writes críticos.
+    function appCheckValida() {
+      return request.app != null;
+    }
+
+    // ===== Usuarios =====
+    match /usuarios/{uid} {
+      // CREATE: el usuario crea su propio doc al registrarse.
+      // Se fuerza rol == 'cliente' (imposibilita privilege escalation).
+      // La whitelist de campos evita que el cliente escriba campos de control.
+      // NOTE: App Check no se exige en CREATE para permitir onboarding sin token registrado.
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.rol == 'cliente'
+        && !request.resource.data.keys().hasAny(['isAdmin', 'role_admin', 'superuser'])
+        && request.resource.data.keys().hasOnly([
+          'nombre', 'email', 'telefono', 'direccion', 'maps_url',
+          'descripcion_casa', 'tokens_balance', 'rol', 'creado_en', 'url_foto',
+          'latitud', 'longitud'
+        ]);
+
+      // READ: el dueño lee su doc; admin lee cualquiera.
+      // IMPORTANT: request.auth != null MUST be first (before esAdmin()) to avoid
+      // calling get() when auth is null, which throws and causes PERMISSION_DENIED.
+      allow read: if request.auth != null
+        && (request.auth.uid == uid || esAdmin());
+
+      // UPDATE: el dueño puede editar su perfil + ajustar balances vía transacción de tickets
+      // - rol es INMUTABLE: no puede estar en el diff (no privilege escalation).
+      // - tokens_balance y tickets_balance: SOLO permitidos si se efectúa una compra
+      //   exacta de 1 ticket por 5 tokens. Cualquier otro intento es denegado.
+      allow update: if (
+        (request.auth != null && request.auth.uid == uid
+          && !('rol' in request.resource.data.diff(resource.data).affectedKeys())
+          && (
+            // Caso 1: Actualización normal de perfil
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'nombre', 'telefono', 'direccion', 'maps_url', 'descripcion_casa', 'url_foto',
+              'latitud', 'longitud', 'fcm_token'
+            ])
+            // Caso 2: Compra de ticket estricta (-5 tokens, +1 ticket)
+            || (
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tickets_balance', 'tokens_balance'])
+              && request.resource.data.tokens_balance == resource.data.tokens_balance - 5
+              && request.resource.data.tickets_balance == resource.data.tickets_balance + 1
+            )
+          )
+        )
+        // Admin: full access.
+        || esAdmin());
+
+      // DELETE: solo admin.
+      allow delete: if esAdmin();
+
+      // LIST: admin o el propio usuario.
+      allow list: if request.auth != null && (esAdmin() || request.auth.uid == uid);
+    }
+
+    // ===== Sorteos (públicos: activos) =====
+    match /sorteos/{sorteoId} {
+      // Lectura pública.
+      allow read, list: if true;
+      // Escritura creación/eliminación: SOLO admin.
+      allow create, delete: if esAdmin();
+      allow update: if esAdmin()
+        // Client participation: append ONLY one uid (the caller's) to participantes.
+        // Safe append pattern:
+        // - Only allowed keys: participantes, nombres_participantes
+        // - Array grows by exactly 1
+        // - The last element of participantes must be the caller's uid
+        // NOTE: App Check removed from client participation to avoid blocking users
+        // whose debug token isn't registered. The transaction in the app prevents
+        // duplicate entries, and the field constraint prevents escalation.
+        || (request.auth != null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantes', 'nombres_participantes'])
+            && request.resource.data.participantes is list
+            && request.resource.data.nombres_participantes is list
+            && request.resource.data.participantes.size() == resource.data.participantes.size() + 1
+            && request.resource.data.participantes[request.resource.data.participantes.size() - 1] == request.auth.uid);
+    }
+
+    // ===== Promos (públicos: activas) =====
+    match /promos/{promoId} {
+      allow read, list: if true;
+      allow create: if esAdmin();
+      allow update: if esAdmin();
+      allow delete: if esAdmin();
+    }
+
+    // ===== Descuentos (públicos: porcentaje en vivo) =====
+    match /descuentos/{descuentoId} {
+      // Lectura pública (el cliente necesita los descuentos para calcular precios).
+      allow read, list: if true;
+      // Escritura SOLO admin + validación de porcentaje.
+      allow create: if esAdmin()
+        && request.resource.data.porcentaje is number
+        && request.resource.data.porcentaje >= 0
+        && request.resource.data.porcentaje <= 100;
+      allow update: if esAdmin()
+        && request.resource.data.porcentaje is number
+        && request.resource.data.porcentaje >= 0
+        && request.resource.data.porcentaje <= 100;
+      allow delete: if esAdmin();
+    }
+
+    // ===== Productos (públicos) =====
+    match /productos/{productoId} {
+      // Lectura pública (el cliente necesita el catálogo).
+      allow read, list: if true;
+      // Escritura SOLO admin + validación de tipo + ticketsReward rango.
+      allow create: if esAdmin()
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0
+        && request.resource.data.precio_base is number
+        && request.resource.data.precio_base >= 0
+        && (request.resource.data.tickets_reward is int) && (request.resource.data.tickets_reward >= 0) && (request.resource.data.tickets_reward <= 100);
+      // UPDATE: admin full access. También permite toggle de 'disponible'
+      // via set(merge:true) sin requerir validar campos de create.
+      allow update: if (
+        esAdmin()
+        && request.resource.data.precio_base is number
+        && request.resource.data.precio_base >= 0
+        && (request.resource.data.tickets_reward is int) && (request.resource.data.tickets_reward >= 0) && (request.resource.data.tickets_reward <= 100)
+      )
+      // Toggle parcial de 'disponible' (switch) — no requiere validar el resto.
+      || (esAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['disponible'])
+        && request.resource.data.disponible is bool);
+      allow delete: if esAdmin();
+    }
+
+    // ===== Pedidos =====
+    // Admin: lectura y escritura global.
+    // Cliente: crea el suyo (pendiente, total numérico >= 0), lo lee, y solo
+    // puede editarlo mientras esté 'pendiente' — jamás toca campos de pago.
+    match /pedidos/{id} {
+      // Admin lee todo; cliente lee solo los suyos.
+      allow read: if esAdmin()
+        || (request.auth != null
+            && resource.data.usuario_id == request.auth.uid);
+
+      // Cliente crea su pedido con estado 'pendiente' y total >= 0.
+      allow create: if request.auth != null
+        && request.resource.data.usuario_id == request.auth.uid
+        && request.resource.data.total is number
+        && request.resource.data.total >= 0
+        && request.resource.data.estado == 'pendiente';
+
+      // Cliente actualiza SOLO mientras pendiente y NO toca campos de pago.
+      allow update: if esAdmin()
+        || (request.auth != null
+            && resource.data.usuario_id == request.auth.uid
+            && resource.data.estado == 'pendiente'
+            && resource.data.usuario_id == resource.data.usuario_id
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(
+                ['estado_pago', 'pago_verificado', 'payment_id']));
+
+      // Solo el admin borra pedidos.
+      allow delete: if esAdmin();
+    }
+
+    // ===== Historial (logs de actividad) =====
+    match /historial/{historialId} {
+      allow read: if resource.data.usuario_id == request.auth.uid
+        && request.auth != null;
+      allow create: if request.auth.uid == request.resource.data.usuario_id
+        && request.auth != null;
+      allow list: if (esAdmin() || request.auth.uid == resource.data.usuario_id) && request.auth != null;
+      allow update, delete: if esAdmin();
+    }
+
+    // ===== Rate limits (Cloud Functions backend) =====
+    match /rate_limits/{key} {
+      allow read, write: if false; // Server-side only, never from client.
+    }
+
+    // ===== Configuración de pagos alternativos =====
+    match /configuracion/{docId} {
+      allow read: if true;  // Público: clientes necesitan ver el alias
+      allow create, update, delete: if esAdmin();  // Solo admin puede modificar
+    }
+
+    // ===== Default: DENY =====
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

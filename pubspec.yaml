@@ -1,0 +1,56 @@
+name: delivery_app_v2
+description: "Aplicación de delivery hiperlocal - MVP para Android e iOS"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Navegación
+  go_router: ^18.0.0
+
+  # Gestión de estado
+  flutter_riverpod: ^2.6.1
+  rxdart: ^0.28.0
+
+  # Abrir URLs externas
+  url_launcher: ^6.3.1
+  http: ^1.2.0
+
+  # Firebase
+  firebase_core: ^4.14.0
+  firebase_auth: ^6.6.1
+  cloud_firestore: ^6.9.0
+  firebase_app_check: ^0.4.7
+  cloud_functions: ^6.4.0
+
+  # Notificación local "¡Ganaste el sorteo!" (al abrir la app).
+  flutter_local_notifications: ^17.2.3
+  firebase_messaging: ^16.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  integration_test:
+    sdk: flutter  # SDK de OneDrive (flutter_windows_3.47.2-stable) — incluye este paquete
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: Sora
+      fonts:
+        - asset: assets/fonts/Sora-Variable.ttf
+
+  assets:
+    - assets/categorias/
+    - assets/icon/icono.png
+
+  # Ícono de la app

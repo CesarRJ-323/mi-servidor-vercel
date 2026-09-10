@@ -1,0 +1,144 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== Helper: ¿el caller es admin? =====
+    function esAdmin() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+    }
+
+    // ===== Helper: App Check validation =====
+    function appCheckValida() {
+      return request.app != null;
+    }
+
+    // ===== Usuarios =====
+    match /usuarios/{uid} {
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.rol == 'cliente'
+        && !request.resource.data.keys().hasAny(['isAdmin', 'role_admin', 'superuser'])
+        && request.resource.data.keys().hasOnly([
+          'nombre', 'email', 'telefono', 'direccion', 'maps_url',
+          'descripcion_casa', 'tokens_balance', 'tickets_balance', 'rol', 'creado_en', 'url_foto',
+          'latitud', 'longitud'
+        ]);
+
+      allow read: if request.auth != null
+        && (request.auth.uid == uid || esAdmin());
+
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.rol == resource.data.rol
+        && request.resource.data.tokens_balance is int && request.resource.data.tokens_balance >= 0
+        && request.resource.data.tickets_balance is int && request.resource.data.tickets_balance >= 0
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'nombre', 'telefono', 'direccion', 'maps_url', 'descripcion_casa', 'url_foto',
+            'latitud', 'longitud', 'tokens_balance', 'tickets_balance'
+        ])
+        || esAdmin();
+
+      allow delete: if esAdmin();
+
+      allow list: if request.auth != null && (esAdmin() || request.auth.uid == uid);
+    }
+
+    // ===== Sorteos (públicos: activos) =====
+    match /sorteos/{sorteoId} {
+      allow read, list: if true;
+      allow create, delete: if esAdmin() && appCheckValida();
+      allow update: if esAdmin() && appCheckValida()
+        || (request.auth != null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantes', 'nombres_participantes'])
+            && request.resource.data.participantes is list
+            && request.resource.data.nombres_participantes is list
+            && request.resource.data.participantes.size() == resource.data.participantes.size() + 1
+            && request.resource.data.participantes[resource.data.participantes.size() - 1] == request.auth.uid);
+    }
+
+    // ===== Promos (públicos: activas) =====
+    match /promos/{promoId} {
+      allow read, list: if true;
+      allow create: if esAdmin() && appCheckValida();
+      allow update: if esAdmin() && appCheckValida();
+      allow delete: if esAdmin() && appCheckValida();
+    }
+
+    // ===== Descuentos (públicos: porcentaje en vivo) =====
+    match /descuentos/{descuentoId} {
+      allow read, list: if true;
+      allow create: if esAdmin() && appCheckValida()
+        && request.resource.data.porcentaje is number
+        && request.resource.data.porcentaje >= 0
+        && request.resource.data.porcentaje <= 100;
+      allow update: if esAdmin() && appCheckValida()
+        && request.resource.data.porcentaje is number
+        && request.resource.data.porcentaje >= 0
+        && request.resource.data.porcentaje <= 100;
+      allow delete: if esAdmin() && appCheckValida();
+    }
+
+    // ===== Productos (públicos) =====
+    match /productos/{productoId} {
+      allow read, list: if true;
+      allow create: if esAdmin() && appCheckValida()
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0
+        && request.resource.data.precio_base is number
+        && request.resource.data.precio_base >= 0
+        && (request.resource.data.tickets_reward is int) && (request.resource.data.tickets_reward >= 0) && (request.resource.data.tickets_reward <= 100);
+      allow update: if esAdmin() && appCheckValida()
+        && request.resource.data.precio_base is number
+        && request.resource.data.precio_base >= 0
+        && (request.resource.data.tickets_reward is int) && (request.resource.data.tickets_reward >= 0) && (request.resource.data.tickets_reward <= 100);
+      allow delete: if esAdmin() && appCheckValida();
+    }
+
+    // ===== Pedidos =====
+    match /pedidos/{id} {
+      allow read: if esAdmin()
+        || (request.auth != null
+            && resource.data.usuario_id == request.auth.uid);
+
+      allow create: if request.auth != null
+        && request.resource.data.usuario_id == request.auth.uid
+        && request.resource.data.total is number
+        && request.resource.data.total >= 0
+        && request.resource.data.estado == 'pendiente';
+
+      allow update: if esAdmin()
+        || (request.auth != null
+            && resource.data.usuario_id == request.auth.uid
+            && resource.data.estado == 'pendiente'
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(
+                ['estado_pago', 'pago_verificado', 'payment_id']));
+
+      allow delete: if esAdmin() && appCheckValida();
+    }
+
+    // ===== Historial (logs de actividad) =====
+    match /historial/{historialId} {
+      allow read: if request.auth != null && resource.data.usuario_id == request.auth.uid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.usuario_id;
+      allow list: if request.auth != null && (esAdmin() || request.auth.uid == resource.data.usuario_id);
+      allow update, delete: if esAdmin() && appCheckValida();
+    }
+
+    // ===== Rate limits (Cloud Functions backend) =====
+    match /rate_limits/{key} {
+      allow read, write: if false;
+    }
+
+    // ===== Configuración de pagos alternativos =====
+    match /configuracion/{docId} {
+      allow read: if true;
+      allow create, update, delete: if esAdmin();
+    }
+
+    // ===== Default: DENY =====
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

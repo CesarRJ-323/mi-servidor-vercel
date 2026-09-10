@@ -1,0 +1,40 @@
+{
+  "dart.flutterSdkPath": "C:\Users\lia\OneDrive\Desktop\flutter_windows_3.47.2-stable",
+  "dart.runAdditionalArgs": [],
+  "editor.formatOnSave": true,
+  "dart.lineLength": 100,
+  "dart.previewFlutterUiGuides": true,
+  "editor.rulers": [100],
+
+  "files.exclude": {
+    "**/.git": true,
+    "**/.dart_tool": true,
+    "**/build": true,
+    "**/.gradle": true,
+    "**/node_modules": true,
+    "**/functions/node_modules": true,
+    "**/*.xml": true,
+    "**/package-lock.json": true
+  },
+
+  "search.exclude": {
+    "**/build": true,
+    "**/.dart_tool": true,
+    "**/.gradle": true,
+    "**/node_modules": true,
+    "**/functions/node_modules": true,
+    "**/*.g.dart": true,
+    "**/*.xml": true
+  },
+
+  "search.useIgnoreFiles": true,
+
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/functions/node_modules/**": true,
+    "**/.gradle/**": true
+  },
+
+  "errorLens.exclude": [],
+  "dart.debugExternalPackageLibraries": false
+}
