@@ -61,9 +61,16 @@ export default async function handler(req, res) {
       }
       
       const productData = productDoc.data();
-      const requiereTokens = productData.requiere_tokens === true;
+      
+      // El ítem en el carrito nos dice si el usuario ELIGIÓ pagar con tokens
+      const userChoseTokens = item.requiereTokens === true || item.requiere_tokens === true;
+      const permiteTokens = productData.permite_tokens === true || productData.requiere_tokens === true;
+      
+      if (userChoseTokens && !permiteTokens) {
+        throw new Error(`El producto ${item.id} no permite ser comprado con tokens.`);
+      }
 
-      if (requiereTokens) {
+      if (userChoseTokens) {
         const precioTokens = productData.precio_tokens || 0;
         totalTokens += precioTokens * item.cantidad;
       } else {

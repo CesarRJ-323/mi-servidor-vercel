@@ -250,6 +250,7 @@ class CartScreen extends ConsumerWidget {
                                     titulo: it.nombre,
                                     precioUnitario: it.precio.toDouble(),
                                     cantidad: it.cantidad,
+                                    requiereTokens: it.requiereTokens,
                                   ),
                               ],
                               externalReference: pedidoId,
@@ -304,9 +305,11 @@ class CartScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'Pagar con Mercado Pago 💳',
-                          style: TextStyle(
+                        child: Text(
+                          totalPesos == 0 && totalTokens > 0 
+                            ? 'Pagar con Tokens 🪙'
+                            : 'Pagar con Mercado Pago 💳',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,

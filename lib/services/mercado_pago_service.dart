@@ -98,6 +98,7 @@ class MercadoPagoService {
             'precioUnitario': it.precioUnitario,
             'cantidad': it.cantidad,
             'descripcion': it.descripcion,
+            'requiereTokens': it.requiereTokens,
           }
       ],
       'externalReference': externalReference,
@@ -240,6 +241,7 @@ class ItemMP {
   final double precioUnitario;
   final int cantidad;
   final String? descripcion;
+  final bool requiereTokens;
 
   const ItemMP({
     required this.id,
@@ -247,6 +249,7 @@ class ItemMP {
     required this.precioUnitario,
     required this.cantidad,
     this.descripcion,
+    this.requiereTokens = false,
   });
 }
 
