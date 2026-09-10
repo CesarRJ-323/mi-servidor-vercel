@@ -212,12 +212,15 @@ class CartScreen extends ConsumerWidget {
                             final userDoc = await FirebaseFirestore.instance.collection('usuarios').doc(user.uid).get();
                             final userData = userDoc.data() ?? {};
                             
-                            final pedidoItems = items.map((item) => PedidoItem(
-                              productoId: item.id,
-                              nombreProducto: item.nombre,
-                              cantidad: item.cantidad,
-                              precioUnitario: item.precio.toDouble(),
-                            )).toList();
+                            final pedidoItems = items
+                                .map((i) => PedidoItem(
+                                      productoId: i.id,
+                                      nombreProducto: i.nombre,
+                                      cantidad: i.cantidad,
+                                      precioUnitario: i.precio.toDouble(),
+                                      promoAplicada: i.promoAplicada,
+                                    ))
+                                .toList();
                             
                             final pedido = Pedido(
                               id: '', // Firestore generates it

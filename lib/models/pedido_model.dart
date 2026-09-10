@@ -3,12 +3,14 @@ class PedidoItem {
   final String nombreProducto;
   final int cantidad;
   final double precioUnitario;
+  final String? promoAplicada;
 
   PedidoItem({
     required this.productoId,
     required this.nombreProducto,
     required this.cantidad,
     required this.precioUnitario,
+    this.promoAplicada,
   });
 
   factory PedidoItem.fromJson(Map<String, dynamic> json) => PedidoItem(
@@ -16,6 +18,7 @@ class PedidoItem {
         nombreProducto: json['nombre_producto'] ?? '',
         cantidad: json['cantidad'] ?? 1,
         precioUnitario: (json['precio_unitario'] ?? 0).toDouble(),
+        promoAplicada: json['promo_aplicada'],
       );
 
   Map<String, dynamic> toJson() => {
@@ -23,6 +26,7 @@ class PedidoItem {
         'nombre_producto': nombreProducto,
         'cantidad': cantidad,
         'precio_unitario': precioUnitario,
+        'promo_aplicada': promoAplicada,
       };
 }
 

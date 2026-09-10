@@ -6,6 +6,7 @@ class CartItem {
   int cantidad;
   final String icono;
   final bool requiereTokens;
+  final String? promoAplicada;
 
   CartItem({
     required this.id,
@@ -14,6 +15,7 @@ class CartItem {
     required this.cantidad,
     required this.icono,
     this.requiereTokens = false,
+    this.promoAplicada,
   });
 
   // Getter faltante
@@ -26,6 +28,7 @@ class CartItem {
         'cantidad': cantidad,
         'icono': icono,
         'requiere_tokens': requiereTokens,
+        'promo_aplicada': promoAplicada,
       };
 
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
@@ -35,5 +38,6 @@ class CartItem {
         cantidad: json['cantidad'] ?? 1,
         icono: json['icono'] ?? '📦',
         requiereTokens: json['requiere_tokens'] ?? false,
+        promoAplicada: json['promo_aplicada'],
       );
 }

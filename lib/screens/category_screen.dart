@@ -139,6 +139,13 @@ class CategoryScreen extends ConsumerWidget {
                           context.push('/login');
                           return;
                         }
+                        
+                        final pct = producto.porcentajeEfectivo(descuentosCat, descuentosProducto: descuentosProd);
+                        String? promoName;
+                        if (pct != null && pct > 0) {
+                          promoName = pct == 50 ? '2x1 o 50% OFF' : '$pct% OFF';
+                        }
+
                         ref.read(cartProvider.notifier).agregar(
                           CartItem(
                             id: producto.id,
@@ -150,6 +157,7 @@ class CategoryScreen extends ConsumerWidget {
                             cantidad: 1,
                             icono: emojiParaProducto(producto.nombre),
                             requiereTokens: producto.requiereTokens,
+                            promoAplicada: promoName,
                           ),
                         );
                         ScaffoldMessenger.of(context).showSnackBar(

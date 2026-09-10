@@ -142,6 +142,10 @@ class ProductoBusquedaCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final descuentosCategoria = ref.watch(preciosVivosCategoriaProvider).value ?? {};
+    final descuentosProducto = ref.watch(preciosVivosProductoProvider).value ?? {};
+    final precioEnVivo = producto.precioEnVivo(descuentosCategoria, descuentosProducto: descuentosProducto);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -167,7 +171,7 @@ class ProductoBusquedaCard extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '\$${producto.precioFinal.toInt()}',
+              producto.requiereTokens ? '${producto.precioTokens} 🪙' : '\$${precioEnVivo.toInt()}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(width: 8),
@@ -178,16 +182,24 @@ class ProductoBusquedaCard extends ConsumerWidget {
                   context.push('/login');
                   return;
                 }
+
+                final pct = producto.porcentajeEfectivo(descuentosCategoria, descuentosProducto: descuentosProducto);
+                String? promoName;
+                if (pct != null && pct > 0) {
+                  promoName = pct == 50 ? '2x1 o 50% OFF' : '$pct% OFF';
+                }
+
                 ref.read(cartProvider.notifier).agregar(
-                      CartItem(
-                        id: producto.id,
-                        nombre: producto.nombre,
-                        precio: producto.precioFinal.toInt(),
-                        cantidad: 1,
-                        icono: _emoji(producto.nombre),
-                        requiereTokens: producto.requiereTokens,
-                      ),
-                    );
+                  CartItem(
+                    id: producto.id,
+                    nombre: producto.nombre,
+                    precio: precioEnVivo.toInt(),
+                    cantidad: 1,
+                    icono: _emoji(producto.nombre),
+                    requiereTokens: producto.requiereTokens,
+                    promoAplicada: promoName,
+                  ),
+                );
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('${producto.nombre} agregado al carrito 🛒'),

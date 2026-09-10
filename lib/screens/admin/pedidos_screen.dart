@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:delivery_app_v2/providers/app_providers.dart';
@@ -37,9 +37,10 @@ class PedidosScreen extends ConsumerWidget {
   Widget _buildPedidoCard(
       BuildContext context, WidgetRef ref, Pedido pedido) {
     final color = _colorEstado(pedido.estado);
-    final detalle = pedido.items
-        .map((i) => '${i.cantidad}x ${i.nombreProducto}')
-        .join(', ');
+    final detalle = pedido.items.map((i) {
+      final promo = i.promoAplicada != null ? ' (con ${i.promoAplicada})' : '';
+      return '${i.cantidad}x ${i.nombreProducto}$promo';
+    }).join('\n');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
