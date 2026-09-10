@@ -33,7 +33,7 @@ class MercadoPagoService {
   /// PEGAR ACÁ el token de TEST si no usás --dart-define.
   /// En producción, usar el token de producción (nunca viaja a producción cliente).
   // ignore: prefer_typos
-  static const String? _accessToken = 'APP_USR-6200570129811424-090718-3eae0ffa5756529ce513fe17560a6a82-3670768195';
+  static const String? _accessToken = null; // 'APP_USR-6200570129811424-090718-3eae0ffa5756529ce513fe17560a6a82-3670768195';
 
   static String? get accessToken => _tokenFromEnv ?? _accessToken;
   static bool get configurado => (accessToken ?? '').isNotEmpty;
