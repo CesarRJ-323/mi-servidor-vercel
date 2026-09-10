@@ -257,23 +257,28 @@ class CartScreen extends ConsumerWidget {
                               userId: user.uid,
                               userEmail: user.email ?? '',
                             );
-                            final Uri checkoutUrl = Uri.parse(preference.initPoint);
-                            // Force open in Chrome (external browser) — the deep link
-                            // rapidiya://pago/exito is registered as an App Link,
-                            // so after payment MP redirects back to the app.
-                            bool launched = await launchUrl(
-                              checkoutUrl,
-                              mode: LaunchMode.externalApplication,
-                            );
-                            if (!launched) {
-                              // Fallback para emuladores que no tengan un browser externo bien configurado
-                              launched = await launchUrl(
+                            if (preference.initPoint.startsWith('rapidiya://')) {
+                              final path = preference.initPoint.replaceFirst('rapidiya:/', '');
+                              context.go(path);
+                            } else {
+                              final Uri checkoutUrl = Uri.parse(preference.initPoint);
+                              // Force open in Chrome (external browser) — the deep link
+                              // rapidiya://pago/exito is registered as an App Link,
+                              // so after payment MP redirects back to the app.
+                              bool launched = await launchUrl(
                                 checkoutUrl,
-                                mode: LaunchMode.platformDefault,
+                                mode: LaunchMode.externalApplication,
                               );
-                            }
-                            if (!launched) {
-                              throw MPException('No se pudo abrir el checkout de Mercado Pago');
+                              if (!launched) {
+                                // Fallback para emuladores que no tengan un browser externo bien configurado
+                                launched = await launchUrl(
+                                  checkoutUrl,
+                                  mode: LaunchMode.platformDefault,
+                                );
+                              }
+                              if (!launched) {
+                                throw MPException('No se pudo abrir el checkout de Mercado Pago');
+                              }
                             }
                           } on MPException catch (e) {
                             if (context.mounted) {
