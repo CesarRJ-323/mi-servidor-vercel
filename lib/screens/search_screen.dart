@@ -170,10 +170,17 @@ class ProductoBusquedaCard extends ConsumerWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              producto.requiereTokens ? '${producto.precioTokens} 🪙' : '\$${precioEnVivo.toInt()}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
+            if (producto.permiteTokens) ...[
+              Text(
+                '\$${precioEnVivo.toInt()} | ${producto.precioTokens} 🪙',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ] else ...[
+              Text(
+                '\$${precioEnVivo.toInt()}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
             const SizedBox(width: 8),
             GestureDetector(
               onTap: () {
@@ -189,25 +196,69 @@ class ProductoBusquedaCard extends ConsumerWidget {
                   promoName = pct == 50 ? '2x1 o 50% OFF' : '$pct% OFF';
                 }
 
-                ref.read(cartProvider.notifier).agregar(
-                  CartItem(
-                    id: producto.id,
-                    nombre: producto.nombre,
-                    precio: precioEnVivo.toInt(),
-                    cantidad: 1,
-                    icono: _emoji(producto.nombre),
-                    requiereTokens: producto.requiereTokens,
-                    promoAplicada: promoName,
-                  ),
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${producto.nombre} agregado al carrito 🛒'),
-                    duration: const Duration(seconds: 1),
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: AppColors.primary,
-                  ),
-                );
+                void agregarAlCarrito(bool conTokens) {
+                  ref.read(cartProvider.notifier).agregar(
+                    CartItem(
+                      id: producto.id,
+                      nombre: producto.nombre,
+                      precio: conTokens ? producto.precioTokens : precioEnVivo.toInt(),
+                      cantidad: 1,
+                      icono: _emoji(producto.nombre),
+                      requiereTokens: conTokens,
+                      promoAplicada: promoName,
+                    ),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${producto.nombre} agregado al carrito 🛒'),
+                      duration: const Duration(seconds: 1),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: AppColors.primary,
+                    ),
+                  );
+                }
+
+                if (producto.permiteTokens) {
+                  showModalBottomSheet(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    builder: (ctx) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Text('¿Cómo querés pagar este producto?',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.attach_money, color: Colors.green),
+                            title: const Text('Pagar con Plata'),
+                            subtitle: Text('\$${precioEnVivo.toInt()}'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              agregarAlCarrito(false);
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.monetization_on, color: Colors.amber),
+                            title: const Text('Pagar con Tokens'),
+                            subtitle: Text('${producto.precioTokens} 🪙'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              agregarAlCarrito(true);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                } else {
+                  agregarAlCarrito(false);
+                }
               },
               child: Container(
                 width: 38,

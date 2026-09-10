@@ -145,14 +145,25 @@ class ProductCard extends StatelessWidget {
                         ],
                         const Spacer(),
                         // Precio final: protagonista, en acento cálido.
-                        Text(
-                          r'$' '${precioFinal.toInt()}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.accent,
+                        if (producto.permiteTokens) ...[
+                          Text(
+                            r'$' '${precioFinal.toInt()} | ${producto.precioTokens} 🪙',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.accent,
+                            ),
                           ),
-                        ),
+                        ] else ...[
+                          Text(
+                            r'$' '${precioFinal.toInt()}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.accent,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     if (!producto.disponible)

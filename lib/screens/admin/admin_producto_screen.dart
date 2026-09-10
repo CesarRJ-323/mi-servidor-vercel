@@ -27,7 +27,7 @@ class _AdminProductoScreenState extends ConsumerState<AdminProductoScreen> {
   final _categorias = ['cereales', 'bebidas', 'frutas', 'jugos', 'postres'];
   String _categoria = 'cereales';
   bool _descuentoActivo = false;
-  bool _requiereTokens = false;
+  bool _permiteTokens = false;
   final _ticketsRewardCtrl = TextEditingController();
   final _porcCtrl = TextEditingController();
   bool _disponible = true;
@@ -45,7 +45,7 @@ class _AdminProductoScreenState extends ConsumerState<AdminProductoScreen> {
       _urlCtrl.text = p.urlImagen;
       _categoria = p.categoria.isNotEmpty ? p.categoria : 'cereales';
       _descuentoActivo = p.descuentoActivo;
-      _requiereTokens = p.requiereTokens;
+      _permiteTokens = p.permiteTokens;
       _porcCtrl.text = p.porcentajeDescuento?.toInt().toString() ?? '';
       _ticketsRewardCtrl.text = p.ticketsReward.toString();
       _disponible = p.disponible;
@@ -82,8 +82,8 @@ class _AdminProductoScreenState extends ConsumerState<AdminProductoScreen> {
         disponible: _disponible,
         ticketsReward: int.tryParse(_ticketsRewardCtrl.text) ?? 0,
         stock: widget.producto?.stock ?? 0,
-        requiereTokens: _requiereTokens,
-        precioTokens: int.tryParse(_precioTokensCtrl.text) ?? 0,
+        permiteTokens: _permiteTokens,
+        precioTokens: _permiteTokens ? (int.tryParse(_precioTokensCtrl.text) ?? 0) : 0,
       );
 
       if (widget.producto == null) {
@@ -246,13 +246,28 @@ class _AdminProductoScreenState extends ConsumerState<AdminProductoScreen> {
               if (_descuentoActivo)
                 _campo('Porcentaje de descuento', _porcCtrl, 'Ej. 20',
                     keyboardType: TextInputType.number),
+              const SizedBox(height: 15),
+
+              SwitchListTile(
+                title: const Text('Permite comprar con Tokens 🪙',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                value: _permiteTokens,
+                onChanged: (v) => setState(() => _permiteTokens = v),
+                activeColor: Colors.deepPurple,
+                contentPadding: EdgeInsets.zero,
+              ),
+              if (_permiteTokens) ...[
+                const SizedBox(height: 10),
+                _campo('Precio en Tokens 🪙', _precioTokensCtrl, 'Ej. 50',
+                    keyboardType: TextInputType.number),
+              ],
               const SizedBox(height: 10),
 
               // Disponible
               // Tickets reward
               _campo(
                 'Tickets que se otorgan al comprar este producto',
-                TextEditingController(),
+                _ticketsRewardCtrl,
                 'Ej. 2',
                 keyboardType: TextInputType.number,
                 validator: (v) {

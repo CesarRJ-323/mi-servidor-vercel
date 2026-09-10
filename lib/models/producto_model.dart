@@ -10,7 +10,7 @@ class Producto {
   final String descripcion;
   final String categoria;
   final int ticketsReward;
-  final bool requiereTokens;
+  final bool permiteTokens;
   final int precioTokens;
 
   Producto({
@@ -25,7 +25,7 @@ class Producto {
     this.descripcion = '',
     this.categoria = '',
     this.ticketsReward = 0,
-    this.requiereTokens = false,
+    this.permiteTokens = false,
     this.precioTokens = 0,
   });
 
@@ -41,7 +41,7 @@ class Producto {
         descripcion: json['descripcion'] ?? '',
         categoria: json['categoria'] ?? '',
         ticketsReward: json['tickets_reward'] ?? 0,
-        requiereTokens: json['requiere_tokens'] ?? false,
+        permiteTokens: json['permite_tokens'] ?? json['requiere_tokens'] ?? false,
         precioTokens: json['precio_tokens'] ?? 0,
       );
 
@@ -62,13 +62,13 @@ class Producto {
         'descripcion': descripcion,
         'categoria': categoria,
         'tickets_reward': ticketsReward,
-        'requiere_tokens': requiereTokens,
+        'permite_tokens': permiteTokens,
+        'requiere_tokens': permiteTokens, // Compatibilidad hacia atrás
         'precio_tokens': precioTokens,
       };
 
   // Precio con descuento aplicado (solo descuento PROPIO del producto)
   num get precioFinal {
-    if (requiereTokens) return precioTokens;
     if (descuentoActivo && porcentajeDescuento != null) {
       return precioBase * (1 - porcentajeDescuento! / 100);
     }
@@ -84,7 +84,6 @@ class Producto {
     Map<String, int> descuentosCategoria, {
     Map<String, int> descuentosProducto = const {},
   }) {
-    if (requiereTokens) return precioTokens;
     if (descuentoActivo && porcentajeDescuento != null) {
       return precioBase * (1 - porcentajeDescuento! / 100);
     }
@@ -111,7 +110,6 @@ class Producto {
     Map<String, int> descuentosCategoria, {
     Map<String, int> descuentosProducto = const {},
   }) {
-    if (requiereTokens) return null; // Los tokens no tienen descuentos
     if (descuentoActivo && porcentajeDescuento != null) {
       return porcentajeDescuento!.toInt();
     }
