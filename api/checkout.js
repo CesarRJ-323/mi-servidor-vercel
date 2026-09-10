@@ -110,7 +110,7 @@ export default async function handler(req, res) {
     if (mpItems.length === 0) {
       // Es un pedido 100% con tokens. Descontar tokens ahora y marcar como pagado.
       if (totalTokens > 0) {
-        const admin = require('firebase-admin');
+        // admin ya está importado arriba: import admin from 'firebase-admin';
         await db.collection('usuarios').doc(userId).update({
           tokens_balance: admin.firestore.FieldValue.increment(-totalTokens)
         });
