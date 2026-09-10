@@ -94,6 +94,7 @@ export default async function handler(req, res) {
         auto_return: 'approved',
         external_reference: externalReference,
         statement_descriptor: 'Rapidiya',
+        notification_url: `https://${req.headers.host}/api/webhook`,
       }
     });
 

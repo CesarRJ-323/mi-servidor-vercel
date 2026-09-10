@@ -40,8 +40,8 @@ class MercadoPagoService {
 
   /// URL Base del backend (Vercel)
   static String get _backendBase {
-    // URL de producción en Vercel (Reemplazar con el dominio real de Vercel cuando se despliegue)
-    return 'https://tu-dominio-vercel.vercel.app/api';
+    // URL de producción en Vercel
+    return 'https://mi-servidor-vercel.vercel.app/api';
   }
 
   /// API key para testing (debe coincidir con INTERNAL_API_KEY en las funciones)
